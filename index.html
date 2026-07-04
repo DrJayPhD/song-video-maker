@@ -98,6 +98,7 @@
 
     /* Drop zone */
     .drop {
+      display: block;
       border: 2px dashed var(--line);
       border-radius: var(--radius);
       padding: 34px 20px;
@@ -126,12 +127,35 @@
     .file-chip.show { display: flex; }
     .file-chip .meta { font-size: 13px; color: var(--muted); }
     .file-chip .name { color: var(--ink); font-size: 14px; word-break: break-all; }
-    .file-chip button {
+
+    .btn-x {
       background: none; border: 1px solid var(--line); color: var(--muted);
       border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 12px;
       flex-shrink: 0;
     }
-    .file-chip button:hover { color: var(--ink); border-color: var(--muted); }
+    .btn-x:hover { color: var(--ink); border-color: var(--muted); }
+
+    /* Merge (two mono files) */
+    .merge { display: none; margin-top: 14px; }
+    .merge.show { display: block; }
+    .lr-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; margin-bottom: 8px;
+      background: var(--navy-deep); border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .lr-badge {
+      flex-shrink: 0;
+      width: 34px; height: 34px; border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px;
+      background: var(--navy-panel); border: 1px solid var(--gold-dim); color: var(--gold);
+    }
+    .lr-info { flex: 1; min-width: 0; }
+    .lr-info .name { color: var(--ink); font-size: 14px; word-break: break-all; }
+    .lr-info .meta { color: var(--muted); font-size: 12px; }
+    .merge-actions { display: flex; gap: 10px; align-items: center; margin-top: 2px; }
+    .merge-actions .btn-x { padding: 7px 12px; }
 
     /* Visualization cards */
     .viz-grid {
@@ -150,9 +174,6 @@
     }
     .viz-card:hover { border-color: var(--gold-dim); }
     .viz-card.selected { border-color: var(--gold); }
-    .viz-card.disabled {
-      opacity: .4; cursor: not-allowed; pointer-events: none;
-    }
     .viz-card .preview {
       background: #000;
       border-radius: 6px;
@@ -160,14 +181,9 @@
       margin-bottom: 10px;
       overflow: hidden;
     }
+    .viz-card .preview canvas { display: block; width: 100%; height: 100%; }
     .viz-card .title { font-size: 14px; font-weight: 600; }
     .viz-card .desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .viz-card .soon {
-      position: absolute; top: 8px; right: 8px;
-      font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
-      color: var(--muted); border: 1px solid var(--line);
-      border-radius: 4px; padding: 2px 5px;
-    }
 
     /* Resolution */
     .seg {
@@ -244,6 +260,11 @@
       color: #e4c789;
     }
     .warn.show { display: block; }
+    .warn.bad {
+      background: rgba(224,103,103,.1);
+      border-color: var(--red);
+      color: #f0a3a3;
+    }
 
     /* Result */
     .result { display: none; margin-top: 8px; }
@@ -269,15 +290,19 @@
       font-size: 15px;
     }
     .btn-secondary {
+      flex: 1;
+      text-align: center;
       padding: 13px 18px;
       color: var(--ink);
       background: var(--navy-deep);
       border: 1px solid var(--line);
       border-radius: var(--radius);
+      text-decoration: none;
       cursor: pointer;
       font-size: 15px;
     }
     .btn-secondary:hover { border-color: var(--muted); }
+    .btn-secondary.hidden { display: none; }
 
     .mobile-note {
       display: none;
@@ -321,38 +346,61 @@
     <section class="panel">
       <p class="step-label"><span class="step-num">1</span> Add your audio</p>
       <label class="drop" id="drop">
-        <input type="file" id="fileInput" accept="audio/*,.wav,.mp3,.m4a,.aac,.flac,.ogg" />
-        <p class="big">Drop a stereo audio file here</p>
-        <p class="small">or click to browse. WAV, MP3, M4A, FLAC accepted.</p>
+        <input type="file" id="fileInput" accept="audio/*,.wav,.mp3,.m4a,.aac,.flac,.ogg" multiple />
+        <p class="big">Drop a stereo file, or two mono WAVs to merge</p>
+        <p class="small">One stereo file (WAV, MP3, M4A, FLAC), or a left + right mono WAV pair.</p>
       </label>
+
+      <!-- Single file -->
       <div class="file-chip" id="fileChip">
         <div>
           <div class="name" id="fileName"></div>
           <div class="meta" id="fileMeta"></div>
         </div>
-        <button id="clearFile">Remove</button>
+        <button class="btn-x" id="clearFile">Remove</button>
       </div>
-      <div class="warn" id="sizeWarn"></div>
+
+      <!-- Two mono WAVs to merge -->
+      <div class="merge" id="mergePanel">
+        <div class="lr-row">
+          <span class="lr-badge" id="badgeA">L</span>
+          <div class="lr-info">
+            <div class="name" id="nameA"></div>
+            <div class="meta" id="metaA"></div>
+          </div>
+        </div>
+        <div class="lr-row">
+          <span class="lr-badge" id="badgeB">R</span>
+          <div class="lr-info">
+            <div class="name" id="nameB"></div>
+            <div class="meta" id="metaB"></div>
+          </div>
+        </div>
+        <div class="merge-actions">
+          <button class="btn-x" id="swapLR">Swap L / R</button>
+          <button class="btn-x" id="clearMerge">Remove both</button>
+        </div>
+      </div>
+
+      <div class="warn" id="warnBox"></div>
     </section>
 
     <!-- Step 2: visualization -->
     <section class="panel">
       <p class="step-label"><span class="step-num">2</span> Pick a visualization</p>
-      <div class="viz-grid">
+      <div class="viz-grid" id="vizGrid">
         <div class="viz-card selected" data-viz="waveform">
-          <div class="preview"><canvas class="prev-canvas" width="200" height="78"></canvas></div>
+          <div class="preview"><canvas class="prev" data-kind="waveform" width="220" height="86"></canvas></div>
           <div class="title">Waveform</div>
           <div class="desc">Scrolling oscilloscope</div>
         </div>
-        <div class="viz-card disabled" data-viz="vectorscope">
-          <span class="soon">Soon</span>
-          <div class="preview"></div>
+        <div class="viz-card" data-viz="vectorscope">
+          <div class="preview"><canvas class="prev" data-kind="vectorscope" width="220" height="86"></canvas></div>
           <div class="title">Vectorscope</div>
           <div class="desc">Lissajous X/Y plot</div>
         </div>
-        <div class="viz-card disabled" data-viz="spectrum">
-          <span class="soon">Soon</span>
-          <div class="preview"></div>
+        <div class="viz-card" data-viz="spectrum">
+          <div class="preview"><canvas class="prev" data-kind="spectrum" width="220" height="86"></canvas></div>
           <div class="title">Spectrum</div>
           <div class="desc">Frequency analyzer</div>
         </div>
@@ -387,6 +435,7 @@
         <video id="videoOut" controls></video>
         <div class="actions">
           <a class="btn-download" id="downloadBtn" download="song-video.mp4">Download MP4</a>
+          <a class="btn-secondary hidden" id="downloadWav" download="stereo.wav">Download stereo WAV</a>
         </div>
       </div>
     </section>
@@ -406,26 +455,43 @@
 
     const VENDOR = "vendor";
 
-    // ---- State ----
-    const state = {
-      file: null,
-      viz: "waveform",
-      res: "1080",
-    };
-
     const RES = {
       "720":  { w: 1280, h: 720 },
       "1080": { w: 1920, h: 1080 },
       "2160": { w: 3840, h: 2160 },
     };
 
-    // Visualization definitions. Only waveform is enabled in this milestone;
-    // the filter builders for the others land with the next phase.
+    // Visualization definitions. Filter strings come straight from SPEC.md,
+    // with the size adapted to the chosen resolution.
     const VIZ = {
       waveform: {
+        label: "waveform",
         fps: 30,
         filter: (w, h) => `showwaves=s=${w}x${h}:mode=line:rate=30:colors=0x00FF00`,
       },
+      vectorscope: {
+        label: "vectorscope",
+        fps: 30,
+        filter: (w, h) =>
+          `aformat=sample_fmts=fltp,avectorscope=s=${w}x${h}:zoom=1.5:rc=0:gc=200:bc=0:rf=0:gf=40:bf=0:draw=line`,
+      },
+      spectrum: {
+        label: "spectrum",
+        fps: 25,
+        filter: (w, h) => `showcqt=s=${w}x${h}:count=1:fps=25`,
+      },
+    };
+
+    // ---- State ----
+    const state = {
+      mode: "single",       // "single" | "merge"
+      file: null,           // single: the File
+      a: null,              // merge slot A: { file, wav }
+      b: null,              // merge slot B: { file, wav }
+      swapped: false,       // if true, slot B is Left
+      viz: "waveform",
+      res: "1080",
+      mergedWav: null,      // { bytes, name } after a merge render
     };
 
     // ---- Elements ----
@@ -436,7 +502,12 @@
     const fileName = $("fileName");
     const fileMeta = $("fileMeta");
     const clearFile = $("clearFile");
-    const sizeWarn = $("sizeWarn");
+    const mergePanel = $("mergePanel");
+    const badgeA = $("badgeA"), badgeB = $("badgeB");
+    const nameA = $("nameA"), metaA = $("metaA");
+    const nameB = $("nameB"), metaB = $("metaB");
+    const swapLR = $("swapLR"), clearMerge = $("clearMerge");
+    const warnBox = $("warnBox");
     const renderBtn = $("renderBtn");
     const progressWrap = $("progressWrap");
     const barFill = $("barFill");
@@ -446,12 +517,15 @@
     const result = $("result");
     const videoOut = $("videoOut");
     const downloadBtn = $("downloadBtn");
+    const downloadWav = $("downloadWav");
     const resSeg = $("resSeg");
+    const vizGrid = $("vizGrid");
 
     let ffmpeg = null;
     let ffLoaded = false;
     let rendering = false;
     let lastVideoURL = null;
+    let lastWavURL = null;
 
     // ---- Helpers ----
     function fmtBytes(n) {
@@ -466,87 +540,295 @@
       const sec = String(s % 60).padStart(2, "0");
       return `${m}:${sec}`;
     }
+    function fmtClock(sec) {
+      sec = Math.round(sec);
+      const m = Math.floor(sec / 60);
+      const s = String(sec % 60).padStart(2, "0");
+      return `${m}:${s}`;
+    }
     function setStatus(msg, isError) {
       statusEl.textContent = msg || "";
       statusEl.classList.toggle("error", !!isError);
     }
-    function updateRenderBtn() {
-      if (rendering) return;
-      if (!state.file) {
-        renderBtn.disabled = true;
-        renderBtn.textContent = "Add a file to render";
-      } else {
-        renderBtn.disabled = false;
-        renderBtn.textContent = "Render video";
-      }
+    function showWarn(msg, bad) {
+      if (!msg) { warnBox.classList.remove("show"); return; }
+      warnBox.textContent = msg;
+      warnBox.classList.toggle("bad", !!bad);
+      warnBox.classList.add("show");
+    }
+    function guessExt(name) {
+      const m = /\.[a-z0-9]+$/i.exec(name || "");
+      return m ? m[0].toLowerCase() : ".wav";
+    }
+    function baseName(name) {
+      return (name || "song").replace(/\.[^.]+$/, "");
+    }
+    function isWav(file) {
+      return /\.wav$/i.test(file.name) || file.type === "audio/wav" || file.type === "audio/x-wav";
     }
 
-    // ---- File handling ----
-    function acceptFile(file) {
-      if (!file) return;
-      state.file = file;
-      fileName.textContent = file.name;
-      fileMeta.textContent = `${fmtBytes(file.size)} · ${file.type || "audio"}`;
-      fileChip.classList.add("show");
-      drop.style.display = "none";
-
-      // Memory warning: browser working set ~2GB. Flag large inputs.
-      if (file.size > 300 * 1048576) {
-        sizeWarn.textContent =
-          "This file is large. Browser encoding may run slowly or hit a memory limit. If it fails, try a shorter clip.";
-        sizeWarn.classList.add("show");
-      } else {
-        sizeWarn.classList.remove("show");
-      }
-      setStatus("");
-      hideResult();
-      updateRenderBtn();
+    // Read a File to an ArrayBuffer
+    function readBuf(file) {
+      return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = () => reject(fr.error);
+        fr.readAsArrayBuffer(file);
+      });
     }
 
-    function clearFileState() {
-      state.file = null;
-      fileInput.value = "";
+    // Minimal WAV header parser: scans chunks for fmt and data.
+    function parseWav(buf) {
+      const dv = new DataView(buf);
+      const str = (o, n) => {
+        let s = "";
+        for (let i = 0; i < n; i++) s += String.fromCharCode(dv.getUint8(o + i));
+        return s;
+      };
+      if (buf.byteLength < 12 || str(0, 4) !== "RIFF" || str(8, 4) !== "WAVE") {
+        return { ok: false, error: "not a valid WAV file" };
+      }
+      let off = 12, fmt = null, dataLen = null;
+      while (off + 8 <= buf.byteLength) {
+        const id = str(off, 4);
+        const size = dv.getUint32(off + 4, true);
+        const body = off + 8;
+        if (id === "fmt " && body + 16 <= buf.byteLength) {
+          fmt = {
+            audioFormat: dv.getUint16(body, true),
+            channels: dv.getUint16(body + 2, true),
+            sampleRate: dv.getUint32(body + 4, true),
+            bitsPerSample: dv.getUint16(body + 14, true),
+          };
+        } else if (id === "data") {
+          dataLen = size;
+        }
+        off = body + size + (size % 2); // chunks are word-aligned
+      }
+      if (!fmt) return { ok: false, error: "WAV has no format header" };
+      if (dataLen == null) return { ok: false, error: "WAV has no audio data" };
+      const bytesPerFrame = fmt.channels * (fmt.bitsPerSample / 8);
+      const frames = bytesPerFrame ? Math.floor(dataLen / bytesPerFrame) : 0;
+      return {
+        ok: true,
+        channels: fmt.channels,
+        sampleRate: fmt.sampleRate,
+        bitsPerSample: fmt.bitsPerSample,
+        frames,
+        duration: fmt.sampleRate ? frames / fmt.sampleRate : 0,
+      };
+    }
+
+    function pcmCodec(bits) {
+      if (bits >= 32) return "pcm_s32le";
+      if (bits >= 24) return "pcm_s24le";
+      return "pcm_s16le";
+    }
+
+    // ---- UI reset ----
+    function resetInputUI() {
       fileChip.classList.remove("show");
-      sizeWarn.classList.remove("show");
+      mergePanel.classList.remove("show");
+      showWarn(null);
       drop.style.display = "";
       hideResult();
-      updateRenderBtn();
     }
-
     function hideResult() {
       result.classList.remove("show");
       progressWrap.classList.remove("show");
     }
 
-    fileInput.addEventListener("change", (e) => acceptFile(e.target.files[0]));
-    clearFile.addEventListener("click", (e) => {
+    function updateRenderBtn() {
+      if (rendering) return;
+      const ready = state.mode === "single" ? !!state.file : mergeReady();
+      renderBtn.disabled = !ready;
+      if (state.mode === "single") {
+        renderBtn.textContent = state.file ? "Render video" : "Add a file to render";
+      } else {
+        renderBtn.textContent = ready ? "Merge and render video" : "Fix the file pair to continue";
+      }
+    }
+
+    // ---- File intake ----
+    async function handleFiles(files) {
+      files = Array.from(files || []).filter(Boolean);
+      if (files.length === 0) return;
+
+      if (files.length === 1) {
+        acceptSingle(files[0]);
+        return;
+      }
+      if (files.length > 2) {
+        showWarn("Add one stereo file, or exactly two mono WAVs. Using the first two files.", false);
+        files = files.slice(0, 2);
+      }
+      await acceptPair(files[0], files[1]);
+    }
+
+    function acceptSingle(file) {
+      state.mode = "single";
+      state.file = file;
+      state.a = state.b = null;
+      state.mergedWav = null;
+
+      resetInputUI();
+      fileName.textContent = file.name;
+      fileMeta.textContent = `${fmtBytes(file.size)} · ${file.type || "audio"}`;
+      fileChip.classList.add("show");
+      drop.style.display = "none";
+
+      if (file.size > 300 * 1048576) {
+        showWarn("This file is large. Browser encoding may run slowly or hit a memory limit. If it fails, try a shorter clip.", false);
+      }
+      setStatus("");
+      updateRenderBtn();
+    }
+
+    async function acceptPair(f1, f2) {
+      state.mode = "merge";
+      state.file = null;
+      state.mergedWav = null;
+      state.swapped = false;
+
+      // Auto-guess L/R from Tascam S3 (left) / S4 (right) suffix.
+      let left = f1, right = f2;
+      const s3 = (f) => /s3\b|s3\./i.test(f.name) || /s3(?=[^0-9]|$)/i.test(f.name);
+      const s4 = (f) => /s4\b|s4\./i.test(f.name) || /s4(?=[^0-9]|$)/i.test(f.name);
+      if (s4(f1) && s3(f2)) { left = f2; right = f1; }
+      else if (s3(f1) || s4(f2)) { left = f1; right = f2; }
+
+      state.a = { file: left, wav: null };
+      state.b = { file: right, wav: null };
+
+      resetInputUI();
+      mergePanel.classList.add("show");
+      drop.style.display = "none";
+      renderName(nameA, metaA, state.a);
+      renderName(nameB, metaB, state.b);
+      setStatus("Reading file headers…");
+
+      // Parse both WAV headers.
+      try {
+        for (const slot of [state.a, state.b]) {
+          if (!isWav(slot.file)) {
+            slot.wav = { ok: false, error: "not a WAV file" };
+          } else {
+            slot.wav = parseWav(await readBuf(slot.file));
+          }
+        }
+      } catch (e) {
+        setStatus("Could not read the files. " + (e && e.message || e), true);
+      }
+      setStatus("");
+      renderName(nameA, metaA, state.a);
+      renderName(nameB, metaB, state.b);
+      validateMerge();
+      updateRenderBtn();
+    }
+
+    function renderName(nameEl, metaEl, slot) {
+      nameEl.textContent = slot.file.name;
+      const w = slot.wav;
+      if (!w) { metaEl.textContent = fmtBytes(slot.file.size); return; }
+      if (!w.ok) { metaEl.textContent = w.error; return; }
+      const chLabel = w.channels === 1 ? "mono" : w.channels + " ch";
+      metaEl.textContent = `${(w.sampleRate/1000).toFixed(w.sampleRate%1000?1:0)} kHz · ${w.bitsPerSample}-bit · ${chLabel} · ${fmtClock(w.duration)}`;
+    }
+
+    // Left/right slots after accounting for the swap toggle.
+    function leftSlot() { return state.swapped ? state.b : state.a; }
+    function rightSlot() { return state.swapped ? state.a : state.b; }
+
+    function mergeReady() {
+      if (state.mode !== "merge" || !state.a || !state.b) return false;
+      const wa = state.a.wav, wb = state.b.wav;
+      if (!wa || !wb || !wa.ok || !wb.ok) return false;
+      if (wa.sampleRate !== wb.sampleRate) return false; // hard refusal
+      return true;
+    }
+
+    function validateMerge() {
+      const wa = state.a.wav, wb = state.b.wav;
+      if (!wa || !wb) return;
+      if (!wa.ok || !wb.ok) {
+        showWarn("The merge path needs two WAV files. " +
+          [!wa.ok ? "First file: " + wa.error : "", !wb.ok ? "Second file: " + wb.error : ""].filter(Boolean).join(" "),
+          true);
+        return;
+      }
+      if (wa.sampleRate !== wb.sampleRate) {
+        showWarn(`Sample rates differ (${wa.sampleRate} Hz vs ${wb.sampleRate} Hz). Both files must match. Re-export them at the same rate.`, true);
+        return;
+      }
+      const msgs = [];
+      if (wa.channels !== 1 || wb.channels !== 1) {
+        msgs.push("These are not both mono files. The merge assumes one mono channel per file.");
+      }
+      if (wa.frames !== wb.frames) {
+        const diff = Math.abs(wa.frames - wb.frames) / wa.sampleRate;
+        msgs.push(`Lengths differ by ${diff.toFixed(2)} s. The shorter channel will be padded with silence.`);
+      }
+      if (wa.duration > 15 * 60 || wb.duration > 15 * 60) {
+        msgs.push("This is over 15 minutes. Browser rendering may take a long time or run out of memory; consider splitting.");
+      }
+      showWarn(msgs.join(" "), false);
+    }
+
+    // ---- Clear ----
+    function clearAll() {
+      state.mode = "single";
+      state.file = state.a = state.b = null;
+      state.mergedWav = null;
+      state.swapped = false;
+      fileInput.value = "";
+      resetInputUI();
+      setStatus("");
+      updateRenderBtn();
+    }
+
+    // ---- Events: file intake ----
+    fileInput.addEventListener("change", (e) => handleFiles(e.target.files));
+    clearFile.addEventListener("click", (e) => { e.preventDefault(); clearAll(); });
+    clearMerge.addEventListener("click", (e) => { e.preventDefault(); clearAll(); });
+    swapLR.addEventListener("click", (e) => {
       e.preventDefault();
-      clearFileState();
+      state.swapped = !state.swapped;
+      // Re-render the badges by swapping which slot shows in each row.
+      const topSlot = leftSlot(), bottomSlot = rightSlot();
+      renderName(nameA, metaA, topSlot);
+      renderName(nameB, metaB, bottomSlot);
+      badgeA.textContent = "L";
+      badgeB.textContent = "R";
+      state.mergedWav = null;
+      hideResult();
     });
 
     ["dragenter", "dragover"].forEach((ev) =>
-      drop.addEventListener(ev, (e) => {
-        e.preventDefault();
-        drop.classList.add("drag");
-      })
+      drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("drag"); })
     );
     ["dragleave", "drop"].forEach((ev) =>
-      drop.addEventListener(ev, (e) => {
-        e.preventDefault();
-        drop.classList.remove("drag");
-      })
+      drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("drag"); })
     );
     drop.addEventListener("drop", (e) => {
-      const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) acceptFile(f);
+      if (e.dataTransfer.files && e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
     });
 
-    // ---- Resolution segmented control ----
+    // ---- Visualization picker ----
+    vizGrid.addEventListener("click", (e) => {
+      const card = e.target.closest(".viz-card");
+      if (!card) return;
+      state.viz = card.dataset.viz;
+      [...vizGrid.children].forEach((c) => c.classList.toggle("selected", c === card));
+      hideResult();
+    });
+
+    // ---- Resolution picker ----
     resSeg.addEventListener("click", (e) => {
       const btn = e.target.closest("button");
       if (!btn) return;
       state.res = btn.dataset.res;
       [...resSeg.children].forEach((b) => b.classList.toggle("active", b === btn));
+      hideResult();
     });
 
     // ---- ffmpeg load ----
@@ -555,12 +837,6 @@
       const { FFmpeg } = window.FFmpegWASM;
       const { toBlobURL } = window.FFmpegUtil;
       ffmpeg = new FFmpeg();
-
-      ffmpeg.on("log", ({ message }) => {
-        // Uncomment for deep debugging:
-        // console.log(message);
-      });
-
       setStatus("Loading the encoder…");
       // The UMD build auto-resolves its worker (814.ffmpeg.js) relative to this
       // script's own location, so vendoring keeps it same-origin. Do not pass
@@ -572,20 +848,53 @@
       ffLoaded = true;
     }
 
+    // ---- Merge two mono WAVs losslessly ----
+    async function mergeChannels() {
+      const { fetchFile } = window.FFmpegUtil;
+      const L = leftSlot(), R = rightSlot();
+      const bits = Math.max(L.wav.bitsPerSample, R.wav.bitsPerSample);
+      const codec = pcmCodec(bits);
+      const targetFrames = Math.max(L.wav.frames, R.wav.frames);
+
+      await ffmpeg.writeFile("left.wav", await fetchFile(L.file));
+      await ffmpeg.writeFile("right.wav", await fetchFile(R.file));
+
+      // Pad each channel to the longer length (silence), then join to stereo.
+      // No re-encode of the samples themselves: output is PCM at the input depth.
+      const filter =
+        `[0:a]apad=whole_len=${targetFrames}[l];` +
+        `[1:a]apad=whole_len=${targetFrames}[r];` +
+        `[l][r]join=inputs=2:channel_layout=stereo[a]`;
+      await ffmpeg.exec([
+        "-i", "left.wav", "-i", "right.wav",
+        "-filter_complex", filter,
+        "-map", "[a]", "-c:a", codec, "stereo.wav",
+      ]);
+
+      const data = await ffmpeg.readFile("stereo.wav");
+      const bytes = new Uint8Array(data.buffer.slice(0));
+      state.mergedWav = { bytes, name: `${baseName(L.file.name)}-stereo.wav` };
+      try { await ffmpeg.deleteFile("left.wav"); } catch (_) {}
+      try { await ffmpeg.deleteFile("right.wav"); } catch (_) {}
+      return "stereo.wav";
+    }
+
     // ---- Render ----
     async function render() {
-      if (rendering || !state.file) return;
+      if (rendering) return;
+      const ready = state.mode === "single" ? !!state.file : mergeReady();
+      if (!ready) return;
+
       rendering = true;
       hideResult();
       renderBtn.disabled = true;
-      renderBtn.textContent = "Rendering…";
+      renderBtn.textContent = state.mode === "merge" ? "Merging…" : "Rendering…";
 
       const { fetchFile } = window.FFmpegUtil;
       const { w, h } = RES[state.res];
       const viz = VIZ[state.viz];
       const startTime = Date.now();
 
-      // Progress reporting
       barFill.style.width = "0%";
       pctText.textContent = "0%";
       timeText.textContent = "elapsed 0:00";
@@ -597,38 +906,38 @@
         pctText.textContent = pct + "%";
         const elapsed = (Date.now() - startTime) / 1000;
         let label = `elapsed ${fmtTime(elapsed)}`;
-        if (pct > 3 && pct < 100) {
-          const est = elapsed / (pct / 100);
-          label += ` · about ${fmtTime(est - elapsed)} left`;
-        }
+        if (pct > 3 && pct < 100) label += ` · about ${fmtTime(elapsed / (pct / 100) - elapsed)} left`;
         timeText.textContent = label;
       };
 
-      const inName = "input" + guessExt(state.file.name);
       const outName = "output.mp4";
+      let inName = null;
+      const sourceName = state.mode === "merge"
+        ? (leftSlot().file.name) : state.file.name;
 
       try {
         await loadFFmpeg();
+
+        if (state.mode === "merge") {
+          setStatus("Merging the two channels losslessly…");
+          inName = await mergeChannels();
+        } else {
+          inName = "input" + guessExt(state.file.name);
+          setStatus("Reading file…");
+          await ffmpeg.writeFile(inName, await fetchFile(state.file));
+        }
+
+        renderBtn.textContent = "Rendering…";
+        setStatus("Encoding. This runs entirely in your browser, so it can take a few minutes.");
         ffmpeg.on("progress", onProgress);
 
-        setStatus("Reading file…");
-        await ffmpeg.writeFile(inName, await fetchFile(state.file));
-
-        setStatus("Encoding. This runs entirely in your browser, so it can take a few minutes.");
-        const filter = viz.filter(w, h);
         const args = [
           "-i", inName,
-          "-filter_complex", `[0:a]${filter}[v]`,
-          "-map", "[v]",
-          "-map", "0:a",
-          "-c:v", "libx264",
-          "-preset", "ultrafast",
-          "-crf", "22",
-          "-pix_fmt", "yuv420p",
-          "-r", String(viz.fps),
-          "-c:a", "aac",
-          "-b:a", "320k",
-          "-shortest",
+          "-filter_complex", `[0:a]${viz.filter(w, h)}[v]`,
+          "-map", "[v]", "-map", "0:a",
+          "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
+          "-pix_fmt", "yuv420p", "-r", String(viz.fps),
+          "-c:a", "aac", "-b:a", "320k", "-shortest",
           outName,
         ];
         await ffmpeg.exec(args);
@@ -637,17 +946,27 @@
         const blob = new Blob([data.buffer], { type: "video/mp4" });
         if (lastVideoURL) URL.revokeObjectURL(lastVideoURL);
         lastVideoURL = URL.createObjectURL(blob);
-
         videoOut.src = lastVideoURL;
         downloadBtn.href = lastVideoURL;
-        downloadBtn.download = suggestName(state.file.name);
-        result.classList.add("show");
+        downloadBtn.download = `${baseName(sourceName)}-${viz.label}.mp4`;
 
+        // Offer the merged stereo WAV when a merge was performed.
+        if (state.mode === "merge" && state.mergedWav) {
+          const wblob = new Blob([state.mergedWav.bytes.buffer], { type: "audio/wav" });
+          if (lastWavURL) URL.revokeObjectURL(lastWavURL);
+          lastWavURL = URL.createObjectURL(wblob);
+          downloadWav.href = lastWavURL;
+          downloadWav.download = state.mergedWav.name;
+          downloadWav.classList.remove("hidden");
+        } else {
+          downloadWav.classList.add("hidden");
+        }
+
+        result.classList.add("show");
         barFill.style.width = "100%";
         pctText.textContent = "100%";
         setStatus(`Done in ${fmtTime((Date.now() - startTime) / 1000)}. Preview and download below.`);
 
-        // cleanup fs
         try { await ffmpeg.deleteFile(inName); } catch (_) {}
         try { await ffmpeg.deleteFile(outName); } catch (_) {}
       } catch (err) {
@@ -660,46 +979,55 @@
       }
     }
 
-    function guessExt(name) {
-      const m = /\.[a-z0-9]+$/i.exec(name || "");
-      return m ? m[0].toLowerCase() : ".wav";
-    }
-    function suggestName(name) {
-      const base = (name || "song").replace(/\.[^.]+$/, "");
-      return `${base}-waveform.mp4`;
-    }
-
     renderBtn.addEventListener("click", render);
 
-    // ---- Waveform preview animation on the card ----
-    (function animatePreview() {
-      const canvas = document.querySelector(".prev-canvas");
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      const W = canvas.width, H = canvas.height;
-      let t = 0;
-      function frame() {
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, W, H);
-        ctx.strokeStyle = "#00FF00";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        for (let x = 0; x < W; x++) {
-          const p = x / W;
-          const amp =
-            Math.sin(p * 22 + t) * 0.5 +
-            Math.sin(p * 51 + t * 1.7) * 0.3 +
-            Math.sin(p * 9 + t * 0.6) * 0.2;
-          const env = Math.sin(p * Math.PI);
-          const y = H / 2 + amp * env * (H / 2 - 4);
-          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    // ---- Card preview animations ----
+    function animatePreviews() {
+      document.querySelectorAll(".prev").forEach((canvas) => {
+        const ctx = canvas.getContext("2d");
+        const W = canvas.width, H = canvas.height;
+        const kind = canvas.dataset.kind;
+        let t = 0;
+        function frame() {
+          ctx.fillStyle = "#000";
+          ctx.fillRect(0, 0, W, H);
+          if (kind === "waveform") {
+            ctx.strokeStyle = "#00FF00"; ctx.lineWidth = 1.5; ctx.beginPath();
+            for (let x = 0; x < W; x++) {
+              const p = x / W;
+              const amp = Math.sin(p*22+t)*0.5 + Math.sin(p*51+t*1.7)*0.3 + Math.sin(p*9+t*0.6)*0.2;
+              const y = H/2 + amp*Math.sin(p*Math.PI)*(H/2-4);
+              x ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+            }
+            ctx.stroke();
+          } else if (kind === "vectorscope") {
+            ctx.strokeStyle = "rgba(0,200,0,0.9)"; ctx.lineWidth = 1.2; ctx.beginPath();
+            const cx = W/2, cy = H/2, r = H*0.42;
+            for (let i = 0; i <= 120; i++) {
+              const a = i/120 * Math.PI*2;
+              const x = cx + Math.sin(a*3 + t)*r*0.9;
+              const y = cy + Math.sin(a*2 + t*0.8)*r*0.9;
+              i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+            }
+            ctx.stroke();
+          } else if (kind === "spectrum") {
+            const bars = 32, bw = W/bars;
+            for (let i = 0; i < bars; i++) {
+              const p = i/bars;
+              const mag = Math.abs(Math.sin(i*0.5 + t)) * (1-p*0.6) * (0.4+0.6*Math.sin(t*0.7+i));
+              const bh = Math.max(2, Math.abs(mag)*H*0.9);
+              const hue = 120 - p*120; // green -> red across spectrum
+              ctx.fillStyle = `hsl(${hue},90%,50%)`;
+              ctx.fillRect(i*bw+1, H-bh, bw-2, bh);
+            }
+          }
+          t += 0.06;
+          requestAnimationFrame(frame);
         }
-        ctx.stroke();
-        t += 0.08;
-        requestAnimationFrame(frame);
-      }
-      frame();
-    })();
+        frame();
+      });
+    }
+    animatePreviews();
 
     updateRenderBtn();
   })();
