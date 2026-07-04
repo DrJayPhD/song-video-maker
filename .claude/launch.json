@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "autoPort": false,
+  "configurations": [
+    {
+      "name": "song-video-app",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8311", "--directory", "/Users/drjay/song-video-app"],
+      "port": 8311
+    }
+  ]
+}

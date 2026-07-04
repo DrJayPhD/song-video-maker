@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Song Video Maker</title>
+  <style>
+    :root {
+      --navy: #1a2744;
+      --navy-deep: #131d33;
+      --navy-panel: #22304f;
+      --gold: #c9a04e;
+      --gold-dim: #a8843b;
+      --ink: #e8ecf4;
+      --muted: #93a0bd;
+      --line: #33405f;
+      --green: #3ad06a;
+      --red: #e06767;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--navy);
+      color: var(--ink);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    header h1 {
+      margin: 0 0 4px;
+      font-size: 26px;
+      letter-spacing: 0.3px;
+    }
+    header h1 .accent { color: var(--gold); }
+
+    .tagline {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .privacy {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--navy-deep);
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .privacy .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    .panel {
+      margin-top: 24px;
+      background: var(--navy-panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+    }
+
+    .step-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--gold);
+      margin: 0 0 14px;
+    }
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px; height: 22px;
+      border: 1px solid var(--gold);
+      border-radius: 50%;
+      font-size: 12px;
+      color: var(--gold);
+    }
+
+    /* Drop zone */
+    .drop {
+      border: 2px dashed var(--line);
+      border-radius: var(--radius);
+      padding: 34px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      background: var(--navy-deep);
+    }
+    .drop:hover { border-color: var(--gold-dim); }
+    .drop.drag { border-color: var(--gold); background: #1b2946; }
+    .drop .big { font-size: 16px; margin: 0 0 6px; }
+    .drop .small { font-size: 13px; color: var(--muted); margin: 0; }
+    .drop input { display: none; }
+
+    .file-chip {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: var(--navy-deep);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .file-chip.show { display: flex; }
+    .file-chip .meta { font-size: 13px; color: var(--muted); }
+    .file-chip .name { color: var(--ink); font-size: 14px; word-break: break-all; }
+    .file-chip button {
+      background: none; border: 1px solid var(--line); color: var(--muted);
+      border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 12px;
+      flex-shrink: 0;
+    }
+    .file-chip button:hover { color: var(--ink); border-color: var(--muted); }
+
+    /* Visualization cards */
+    .viz-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .viz-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--navy-deep);
+      padding: 12px;
+      cursor: pointer;
+      transition: border-color .15s, transform .1s;
+      position: relative;
+    }
+    .viz-card:hover { border-color: var(--gold-dim); }
+    .viz-card.selected { border-color: var(--gold); }
+    .viz-card.disabled {
+      opacity: .4; cursor: not-allowed; pointer-events: none;
+    }
+    .viz-card .preview {
+      background: #000;
+      border-radius: 6px;
+      height: 78px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .viz-card .title { font-size: 14px; font-weight: 600; }
+    .viz-card .desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .viz-card .soon {
+      position: absolute; top: 8px; right: 8px;
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); border: 1px solid var(--line);
+      border-radius: 4px; padding: 2px 5px;
+    }
+
+    /* Resolution */
+    .seg {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .seg button {
+      background: var(--navy-deep);
+      color: var(--muted);
+      border: none;
+      padding: 10px 18px;
+      cursor: pointer;
+      font-size: 14px;
+      border-right: 1px solid var(--line);
+    }
+    .seg button:last-child { border-right: none; }
+    .seg button.active { background: var(--gold); color: var(--navy-deep); font-weight: 600; }
+
+    /* Render button */
+    .render-btn {
+      width: 100%;
+      margin-top: 4px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--navy-deep);
+      background: var(--gold);
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+    }
+    .render-btn:hover:not(:disabled) { background: #d6ae5c; }
+    .render-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* Progress */
+    .progress-wrap { display: none; margin-top: 18px; }
+    .progress-wrap.show { display: block; }
+    .bar {
+      height: 10px;
+      background: var(--navy-deep);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar > span {
+      display: block; height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+      transition: width .2s;
+    }
+    .progress-meta {
+      display: flex; justify-content: space-between;
+      font-size: 13px; color: var(--muted); margin-top: 8px;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 18px;
+    }
+    .status.error { color: var(--red); }
+
+    .warn {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      border-radius: 8px;
+      background: rgba(224,160,78,.1);
+      border: 1px solid var(--gold-dim);
+      color: #e4c789;
+    }
+    .warn.show { display: block; }
+
+    /* Result */
+    .result { display: none; margin-top: 8px; }
+    .result.show { display: block; }
+    .result video {
+      width: 100%;
+      border-radius: var(--radius);
+      background: #000;
+      display: block;
+    }
+    .result .actions { margin-top: 14px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn-download {
+      flex: 1;
+      text-align: center;
+      padding: 13px;
+      font-weight: 600;
+      color: var(--navy-deep);
+      background: var(--gold);
+      border-radius: var(--radius);
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .btn-secondary {
+      padding: 13px 18px;
+      color: var(--ink);
+      background: var(--navy-deep);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .btn-secondary:hover { border-color: var(--muted); }
+
+    .mobile-note {
+      display: none;
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--gold);
+    }
+
+    footer {
+      margin-top: 40px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+    footer code {
+      color: var(--ink);
+      background: var(--navy-deep);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 560px) {
+      .viz-grid { grid-template-columns: 1fr; }
+      .mobile-note { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Song <span class="accent">Video</span> Maker</h1>
+      <p class="tagline">Turn a song into a YouTube-ready visualization video, right in your browser.</p>
+      <div class="privacy">
+        <span class="dot"></span>
+        Your audio never leaves this machine. Everything runs locally.
+      </div>
+      <p class="mobile-note">Desktop is recommended. Browser encoding needs memory and time.</p>
+    </header>
+
+    <!-- Step 1: audio -->
+    <section class="panel">
+      <p class="step-label"><span class="step-num">1</span> Add your audio</p>
+      <label class="drop" id="drop">
+        <input type="file" id="fileInput" accept="audio/*,.wav,.mp3,.m4a,.aac,.flac,.ogg" />
+        <p class="big">Drop a stereo audio file here</p>
+        <p class="small">or click to browse. WAV, MP3, M4A, FLAC accepted.</p>
+      </label>
+      <div class="file-chip" id="fileChip">
+        <div>
+          <div class="name" id="fileName"></div>
+          <div class="meta" id="fileMeta"></div>
+        </div>
+        <button id="clearFile">Remove</button>
+      </div>
+      <div class="warn" id="sizeWarn"></div>
+    </section>
+
+    <!-- Step 2: visualization -->
+    <section class="panel">
+      <p class="step-label"><span class="step-num">2</span> Pick a visualization</p>
+      <div class="viz-grid">
+        <div class="viz-card selected" data-viz="waveform">
+          <div class="preview"><canvas class="prev-canvas" width="200" height="78"></canvas></div>
+          <div class="title">Waveform</div>
+          <div class="desc">Scrolling oscilloscope</div>
+        </div>
+        <div class="viz-card disabled" data-viz="vectorscope">
+          <span class="soon">Soon</span>
+          <div class="preview"></div>
+          <div class="title">Vectorscope</div>
+          <div class="desc">Lissajous X/Y plot</div>
+        </div>
+        <div class="viz-card disabled" data-viz="spectrum">
+          <span class="soon">Soon</span>
+          <div class="preview"></div>
+          <div class="title">Spectrum</div>
+          <div class="desc">Frequency analyzer</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 3: resolution -->
+    <section class="panel">
+      <p class="step-label"><span class="step-num">3</span> Resolution</p>
+      <div class="seg" id="resSeg">
+        <button data-res="720">720p</button>
+        <button data-res="1080" class="active">1080p</button>
+        <button data-res="2160">4K</button>
+      </div>
+    </section>
+
+    <!-- Step 4: render -->
+    <section class="panel">
+      <p class="step-label"><span class="step-num">4</span> Render</p>
+      <button class="render-btn" id="renderBtn" disabled>Add a file to render</button>
+
+      <div class="progress-wrap" id="progressWrap">
+        <div class="bar"><span id="barFill"></span></div>
+        <div class="progress-meta">
+          <span id="pctText">0%</span>
+          <span id="timeText">elapsed 0:00</span>
+        </div>
+      </div>
+      <div class="status" id="status"></div>
+
+      <div class="result" id="result">
+        <video id="videoOut" controls></video>
+        <div class="actions">
+          <a class="btn-download" id="downloadBtn" download="song-video.mp4">Download MP4</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Runs on <code>ffmpeg.wasm</code> in your browser. H.264 + AAC 320k, yuv420p MP4.
+    </footer>
+  </div>
+
+  <!-- ffmpeg.wasm (single-threaded UMD builds, vendored locally so the worker
+       loads same-origin and the app works offline / on a plain static host) -->
+  <script src="vendor/ffmpeg.js"></script>
+  <script src="vendor/util.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    const VENDOR = "vendor";
+
+    // ---- State ----
+    const state = {
+      file: null,
+      viz: "waveform",
+      res: "1080",
+    };
+
+    const RES = {
+      "720":  { w: 1280, h: 720 },
+      "1080": { w: 1920, h: 1080 },
+      "2160": { w: 3840, h: 2160 },
+    };
+
+    // Visualization definitions. Only waveform is enabled in this milestone;
+    // the filter builders for the others land with the next phase.
+    const VIZ = {
+      waveform: {
+        fps: 30,
+        filter: (w, h) => `showwaves=s=${w}x${h}:mode=line:rate=30:colors=0x00FF00`,
+      },
+    };
+
+    // ---- Elements ----
+    const $ = (id) => document.getElementById(id);
+    const drop = $("drop");
+    const fileInput = $("fileInput");
+    const fileChip = $("fileChip");
+    const fileName = $("fileName");
+    const fileMeta = $("fileMeta");
+    const clearFile = $("clearFile");
+    const sizeWarn = $("sizeWarn");
+    const renderBtn = $("renderBtn");
+    const progressWrap = $("progressWrap");
+    const barFill = $("barFill");
+    const pctText = $("pctText");
+    const timeText = $("timeText");
+    const statusEl = $("status");
+    const result = $("result");
+    const videoOut = $("videoOut");
+    const downloadBtn = $("downloadBtn");
+    const resSeg = $("resSeg");
+
+    let ffmpeg = null;
+    let ffLoaded = false;
+    let rendering = false;
+    let lastVideoURL = null;
+
+    // ---- Helpers ----
+    function fmtBytes(n) {
+      if (n < 1024) return n + " B";
+      if (n < 1048576) return (n / 1024).toFixed(0) + " KB";
+      if (n < 1073741824) return (n / 1048576).toFixed(1) + " MB";
+      return (n / 1073741824).toFixed(2) + " GB";
+    }
+    function fmtTime(s) {
+      s = Math.max(0, Math.floor(s));
+      const m = Math.floor(s / 60);
+      const sec = String(s % 60).padStart(2, "0");
+      return `${m}:${sec}`;
+    }
+    function setStatus(msg, isError) {
+      statusEl.textContent = msg || "";
+      statusEl.classList.toggle("error", !!isError);
+    }
+    function updateRenderBtn() {
+      if (rendering) return;
+      if (!state.file) {
+        renderBtn.disabled = true;
+        renderBtn.textContent = "Add a file to render";
+      } else {
+        renderBtn.disabled = false;
+        renderBtn.textContent = "Render video";
+      }
+    }
+
+    // ---- File handling ----
+    function acceptFile(file) {
+      if (!file) return;
+      state.file = file;
+      fileName.textContent = file.name;
+      fileMeta.textContent = `${fmtBytes(file.size)} · ${file.type || "audio"}`;
+      fileChip.classList.add("show");
+      drop.style.display = "none";
+
+      // Memory warning: browser working set ~2GB. Flag large inputs.
+      if (file.size > 300 * 1048576) {
+        sizeWarn.textContent =
+          "This file is large. Browser encoding may run slowly or hit a memory limit. If it fails, try a shorter clip.";
+        sizeWarn.classList.add("show");
+      } else {
+        sizeWarn.classList.remove("show");
+      }
+      setStatus("");
+      hideResult();
+      updateRenderBtn();
+    }
+
+    function clearFileState() {
+      state.file = null;
+      fileInput.value = "";
+      fileChip.classList.remove("show");
+      sizeWarn.classList.remove("show");
+      drop.style.display = "";
+      hideResult();
+      updateRenderBtn();
+    }
+
+    function hideResult() {
+      result.classList.remove("show");
+      progressWrap.classList.remove("show");
+    }
+
+    fileInput.addEventListener("change", (e) => acceptFile(e.target.files[0]));
+    clearFile.addEventListener("click", (e) => {
+      e.preventDefault();
+      clearFileState();
+    });
+
+    ["dragenter", "dragover"].forEach((ev) =>
+      drop.addEventListener(ev, (e) => {
+        e.preventDefault();
+        drop.classList.add("drag");
+      })
+    );
+    ["dragleave", "drop"].forEach((ev) =>
+      drop.addEventListener(ev, (e) => {
+        e.preventDefault();
+        drop.classList.remove("drag");
+      })
+    );
+    drop.addEventListener("drop", (e) => {
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) acceptFile(f);
+    });
+
+    // ---- Resolution segmented control ----
+    resSeg.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      state.res = btn.dataset.res;
+      [...resSeg.children].forEach((b) => b.classList.toggle("active", b === btn));
+    });
+
+    // ---- ffmpeg load ----
+    async function loadFFmpeg() {
+      if (ffLoaded) return;
+      const { FFmpeg } = window.FFmpegWASM;
+      const { toBlobURL } = window.FFmpegUtil;
+      ffmpeg = new FFmpeg();
+
+      ffmpeg.on("log", ({ message }) => {
+        // Uncomment for deep debugging:
+        // console.log(message);
+      });
+
+      setStatus("Loading the encoder…");
+      // The UMD build auto-resolves its worker (814.ffmpeg.js) relative to this
+      // script's own location, so vendoring keeps it same-origin. Do not pass
+      // classWorkerURL: that path is resolved against a base baked into the bundle.
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`${VENDOR}/ffmpeg-core.js`, "text/javascript"),
+        wasmURL: await toBlobURL(`${VENDOR}/ffmpeg-core.wasm`, "application/wasm"),
+      });
+      ffLoaded = true;
+    }
+
+    // ---- Render ----
+    async function render() {
+      if (rendering || !state.file) return;
+      rendering = true;
+      hideResult();
+      renderBtn.disabled = true;
+      renderBtn.textContent = "Rendering…";
+
+      const { fetchFile } = window.FFmpegUtil;
+      const { w, h } = RES[state.res];
+      const viz = VIZ[state.viz];
+      const startTime = Date.now();
+
+      // Progress reporting
+      barFill.style.width = "0%";
+      pctText.textContent = "0%";
+      timeText.textContent = "elapsed 0:00";
+      progressWrap.classList.add("show");
+
+      const onProgress = ({ progress }) => {
+        const pct = Math.max(0, Math.min(100, Math.round(progress * 100)));
+        barFill.style.width = pct + "%";
+        pctText.textContent = pct + "%";
+        const elapsed = (Date.now() - startTime) / 1000;
+        let label = `elapsed ${fmtTime(elapsed)}`;
+        if (pct > 3 && pct < 100) {
+          const est = elapsed / (pct / 100);
+          label += ` · about ${fmtTime(est - elapsed)} left`;
+        }
+        timeText.textContent = label;
+      };
+
+      const inName = "input" + guessExt(state.file.name);
+      const outName = "output.mp4";
+
+      try {
+        await loadFFmpeg();
+        ffmpeg.on("progress", onProgress);
+
+        setStatus("Reading file…");
+        await ffmpeg.writeFile(inName, await fetchFile(state.file));
+
+        setStatus("Encoding. This runs entirely in your browser, so it can take a few minutes.");
+        const filter = viz.filter(w, h);
+        const args = [
+          "-i", inName,
+          "-filter_complex", `[0:a]${filter}[v]`,
+          "-map", "[v]",
+          "-map", "0:a",
+          "-c:v", "libx264",
+          "-preset", "ultrafast",
+          "-crf", "22",
+          "-pix_fmt", "yuv420p",
+          "-r", String(viz.fps),
+          "-c:a", "aac",
+          "-b:a", "320k",
+          "-shortest",
+          outName,
+        ];
+        await ffmpeg.exec(args);
+
+        const data = await ffmpeg.readFile(outName);
+        const blob = new Blob([data.buffer], { type: "video/mp4" });
+        if (lastVideoURL) URL.revokeObjectURL(lastVideoURL);
+        lastVideoURL = URL.createObjectURL(blob);
+
+        videoOut.src = lastVideoURL;
+        downloadBtn.href = lastVideoURL;
+        downloadBtn.download = suggestName(state.file.name);
+        result.classList.add("show");
+
+        barFill.style.width = "100%";
+        pctText.textContent = "100%";
+        setStatus(`Done in ${fmtTime((Date.now() - startTime) / 1000)}. Preview and download below.`);
+
+        // cleanup fs
+        try { await ffmpeg.deleteFile(inName); } catch (_) {}
+        try { await ffmpeg.deleteFile(outName); } catch (_) {}
+      } catch (err) {
+        console.error(err);
+        setStatus("Something went wrong during encoding. " + (err && err.message ? err.message : ""), true);
+      } finally {
+        if (ffmpeg) ffmpeg.off("progress", onProgress);
+        rendering = false;
+        updateRenderBtn();
+      }
+    }
+
+    function guessExt(name) {
+      const m = /\.[a-z0-9]+$/i.exec(name || "");
+      return m ? m[0].toLowerCase() : ".wav";
+    }
+    function suggestName(name) {
+      const base = (name || "song").replace(/\.[^.]+$/, "");
+      return `${base}-waveform.mp4`;
+    }
+
+    renderBtn.addEventListener("click", render);
+
+    // ---- Waveform preview animation on the card ----
+    (function animatePreview() {
+      const canvas = document.querySelector(".prev-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width, H = canvas.height;
+      let t = 0;
+      function frame() {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = "#00FF00";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let x = 0; x < W; x++) {
+          const p = x / W;
+          const amp =
+            Math.sin(p * 22 + t) * 0.5 +
+            Math.sin(p * 51 + t * 1.7) * 0.3 +
+            Math.sin(p * 9 + t * 0.6) * 0.2;
+          const env = Math.sin(p * Math.PI);
+          const y = H / 2 + amp * env * (H / 2 - 4);
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        t += 0.08;
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+
+    updateRenderBtn();
+  })();
+  </script>
+</body>
+</html>
