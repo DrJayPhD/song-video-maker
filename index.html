@@ -11,6 +11,9 @@
       --navy-panel: #22304f;
       --gold: #c9a04e;
       --gold-dim: #a8843b;
+      --exp-blue: #2f6bff;
+      --exp-blue-light: #6ea8ff;
+      --exp-blue-deep: #1b4fd1;
       --ink: #e8ecf4;
       --muted: #93a0bd;
       --line: #33405f;
@@ -36,12 +39,39 @@
       padding: 40px 24px 80px;
     }
 
+    /* eXplorers brand lockup */
+    .brandbar {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      margin-bottom: 18px;
+      padding: 7px 14px 7px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(47,107,255,.14), rgba(47,107,255,.03));
+      transition: border-color .15s, background .15s;
+    }
+    .brandbar:hover { border-color: var(--exp-blue); background: linear-gradient(90deg, rgba(47,107,255,.22), rgba(47,107,255,.05)); }
+    .brandbar .mark { width: 30px; height: 30px; display: block; flex-shrink: 0; }
+    .brandbar .word {
+      font-size: 14px; font-weight: 700; letter-spacing: .2px; color: var(--ink);
+    }
+    .brandbar .word .x { color: var(--exp-blue-light); }
+    .brandbar .by { font-size: 12px; color: var(--muted); font-weight: 400; }
+
     header h1 {
       margin: 0 0 4px;
       font-size: 26px;
       letter-spacing: 0.3px;
     }
     header h1 .accent { color: var(--gold); }
+    .frontier {
+      margin: 8px 0 0;
+      font-size: 13px;
+      color: var(--exp-blue-light);
+      font-style: italic;
+    }
 
     .tagline {
       margin: 0;
@@ -323,6 +353,14 @@
       padding: 1px 5px;
       border-radius: 4px;
     }
+    footer .community {
+      margin-top: 10px;
+    }
+    footer .community a {
+      color: var(--exp-blue-light);
+      text-decoration: none;
+    }
+    footer .community a:hover { text-decoration: underline; }
 
     @media (max-width: 560px) {
       .viz-grid { grid-template-columns: 1fr; }
@@ -333,8 +371,28 @@
 <body>
   <div class="wrap">
     <header>
+      <a class="brandbar" href="https://www.skool.com/innovate-5678/about" target="_blank" rel="noopener">
+        <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="expg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#6ea8ff"/>
+              <stop offset="1" stop-color="#1b4fd1"/>
+            </linearGradient>
+          </defs>
+          <!-- crossed rocket blades forming an X -->
+          <path d="M14 12 L52 50 L47 55 L9 17 Z" fill="url(#expg)"/>
+          <path d="M50 12 L12 50 L17 55 L55 17 Z" fill="#2f6bff"/>
+          <!-- rocket nose spark up top -->
+          <path d="M32 6 L37 20 L32 16 L27 20 Z" fill="#eaf1ff"/>
+          <!-- sparkles -->
+          <path d="M50 24 l1.6 4 4 1.6 -4 1.6 -1.6 4 -1.6 -4 -4 -1.6 4 -1.6 Z" fill="#cfe0ff"/>
+          <circle cx="15" cy="49" r="2.2" fill="#6ea8ff"/>
+        </svg>
+        <span class="word">e<span class="x">X</span>plorers <span class="by">· community</span></span>
+      </a>
       <h1>Song <span class="accent">Video</span> Maker</h1>
       <p class="tagline">Turn a song into a YouTube-ready visualization video, right in your browser.</p>
+      <p class="frontier">eXploring the frontier of the unplayed song.</p>
       <div class="privacy">
         <span class="dot"></span>
         Your audio never leaves this machine. Everything runs locally.
@@ -442,6 +500,9 @@
 
     <footer>
       Runs on <code>ffmpeg.wasm</code> in your browser. H.264 + AAC 320k, yuv420p MP4.
+      <div class="community">
+        Made for the <a href="https://www.skool.com/innovate-5678/about" target="_blank" rel="noopener">eXplorers community</a> 🚀 by Dr. Jay.
+      </div>
     </footer>
   </div>
 
