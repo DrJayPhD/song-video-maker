@@ -53,7 +53,11 @@
       transition: border-color .15s, background .15s;
     }
     .brandbar:hover { border-color: var(--exp-blue); background: linear-gradient(90deg, rgba(47,107,255,.22), rgba(47,107,255,.05)); }
-    .brandbar .mark { width: 30px; height: 30px; display: block; flex-shrink: 0; }
+    .brandbar .mark {
+      width: 42px; height: 42px; display: block; flex-shrink: 0;
+      border-radius: 9px; object-fit: cover;
+      border: 1px solid rgba(110,168,255,.35);
+    }
     .brandbar .word {
       font-size: 14px; font-weight: 700; letter-spacing: .2px; color: var(--ink);
     }
@@ -372,22 +376,7 @@
   <div class="wrap">
     <header>
       <a class="brandbar" href="https://www.skool.com/innovate-5678/about" target="_blank" rel="noopener">
-        <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
-          <defs>
-            <linearGradient id="expg" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#6ea8ff"/>
-              <stop offset="1" stop-color="#1b4fd1"/>
-            </linearGradient>
-          </defs>
-          <!-- crossed rocket blades forming an X -->
-          <path d="M14 12 L52 50 L47 55 L9 17 Z" fill="url(#expg)"/>
-          <path d="M50 12 L12 50 L17 55 L55 17 Z" fill="#2f6bff"/>
-          <!-- rocket nose spark up top -->
-          <path d="M32 6 L37 20 L32 16 L27 20 Z" fill="#eaf1ff"/>
-          <!-- sparkles -->
-          <path d="M50 24 l1.6 4 4 1.6 -4 1.6 -1.6 4 -1.6 -4 -4 -1.6 4 -1.6 Z" fill="#cfe0ff"/>
-          <circle cx="15" cy="49" r="2.2" fill="#6ea8ff"/>
-        </svg>
+        <img class="mark" src="assets/explorers-logo.jpg" alt="eXplorers logo" />
         <span class="word">e<span class="x">X</span>plorers <span class="by">· community</span></span>
       </a>
       <h1>Song <span class="accent">Video</span> Maker</h1>
